@@ -118,19 +118,35 @@ function loadEntries() {
   }
 }
 
-function loadProfile() {
+function profileKey(passwordHash) {
+  return passwordHash ? `${PROFILE_KEY}:${passwordHash}` : PROFILE_KEY;
+}
+
+function loadProfile(passwordHash) {
   try {
-    return { ...defaultProfile, ...JSON.parse(localStorage.getItem(PROFILE_KEY)) };
+    const linkedKey = profileKey(passwordHash);
+    const linkedProfile = localStorage.getItem(linkedKey);
+    if (linkedProfile) return { ...defaultProfile, ...JSON.parse(linkedProfile) };
+
+    const legacyProfile = localStorage.getItem(PROFILE_KEY);
+    if (legacyProfile && passwordHash) {
+      localStorage.setItem(linkedKey, legacyProfile);
+      localStorage.removeItem(PROFILE_KEY);
+      return { ...defaultProfile, ...JSON.parse(legacyProfile) };
+    }
+    return defaultProfile;
   } catch {
     return defaultProfile;
   }
 }
 
 function App() {
-  const [hasPassword, setHasPassword] = useState(Boolean(localStorage.getItem(PASSWORD_KEY)));
+  const storedPasswordHash = localStorage.getItem(PASSWORD_KEY) || "";
+  const [passwordHash, setPasswordHash] = useState(storedPasswordHash);
+  const [hasPassword, setHasPassword] = useState(Boolean(storedPasswordHash));
   const [unlocked, setUnlocked] = useState(sessionStorage.getItem(SESSION_KEY) === "true");
   const [entries, setEntries] = useState(loadEntries);
-  const [profile, setProfile] = useState(loadProfile);
+  const [profile, setProfile] = useState(() => loadProfile(storedPasswordHash));
   const [tab, setTab] = useState("today");
   const [composer, setComposer] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -157,8 +173,16 @@ function App() {
     return (
       <PasswordGate
         hasPassword={hasPassword}
-        onSetup={() => setHasPassword(true)}
-        onUnlock={() => setUnlocked(true)}
+        onSetup={(hash) => {
+          setPasswordHash(hash);
+          setHasPassword(true);
+          setProfile(loadProfile(hash));
+        }}
+        onUnlock={(hash) => {
+          setPasswordHash(hash);
+          setProfile(loadProfile(hash));
+          setUnlocked(true);
+        }}
       />
     );
   }
@@ -171,7 +195,8 @@ function App() {
 
   const saveProfile = (nextProfile) => {
     setProfile(nextProfile);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
+    localStorage.setItem(profileKey(passwordHash), JSON.stringify(nextProfile));
+    localStorage.removeItem(PROFILE_KEY);
     setShowProfile(false);
   };
 
@@ -237,7 +262,7 @@ function ProfileSheet({ profile, onSave, onClose, onLock }) {
           <div>
             <p className="eyebrow">MY PRIVATE PROFILE</p>
             <h2>{form.name || "Your name belongs here"}</h2>
-            <span><ShieldCheck /> Stored on this device</span>
+            <span><ShieldCheck /> Linked to this diary password</span>
           </div>
         </div>
 
@@ -305,12 +330,12 @@ function PasswordGate({ hasPassword, onSetup, onUnlock }) {
         return;
       }
       sessionStorage.setItem(SESSION_KEY, "true");
-      onUnlock();
+      onUnlock(passwordHash);
     } else {
       localStorage.setItem(PASSWORD_KEY, passwordHash);
       sessionStorage.setItem(SESSION_KEY, "true");
-      onSetup();
-      onUnlock();
+      onSetup(passwordHash);
+      onUnlock(passwordHash);
     }
     setWorking(false);
   };
