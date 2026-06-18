@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap");
 
 :root {
   font-family: "DM Sans", sans-serif;
@@ -118,6 +118,7 @@ h2 { font-size: 24px; }
 
 .recent { margin-top: 8px; }
 .entry-list, .day-entries { display: grid; gap: 9px; }
+.entry-list > .postcard { width: 100%; }
 .entry-card { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: start; background: rgba(255,255,255,.45); border: 1px solid #d1c8b9; padding: 13px; position: relative; }
 .entry-card::before { content: ""; position: absolute; width: 4px; height: 100%; left: -1px; top: 0; background: #d2af7f; }
 .entry-card.glucose::before { background: #d98562; }
@@ -164,6 +165,84 @@ h2 { font-size: 24px; }
 .day-label { height: 55px; border: 1px solid #b9ae9e; text-align: center; background: #eee3d1; }
 .day-label span { display: block; font: 8px "DM Mono"; background: #c86f52; color: white; padding: 3px; }
 .day-label strong { font: 22px "Newsreader"; line-height: 35px; }
+.bin-intro, .health-archive-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 17px; }
+.bin-intro > svg, .health-archive-heading > svg { width: 38px; height: 38px; padding: 9px; border-radius: 50%; background: #e4d5bd; color: #796449; }
+.bin-intro h2, .health-archive-heading h2 { font-size: 23px; }
+.memory-bin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px 15px; margin-bottom: 38px; }
+.memory-bin-grid > button { min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; text-align: left; }
+.memory-bin-grid > button:hover .memory-bin { transform: translateY(-4px) rotate(.4deg); }
+.memory-bin {
+  --bin: #aa7a4a; --bin-dark: #75502f; min-height: 164px; position: relative; margin-top: 25px; padding: 49px 12px 13px;
+  border: 2px solid var(--bin-dark); background: var(--bin); box-shadow: 5px 6px 0 rgba(70,53,34,.17);
+  transition: transform .2s; isolation: isolate;
+}
+.memory-bin::before { content: ""; position: absolute; left: 8px; right: 8px; top: 10px; height: 21px; border: 1px solid var(--bin-dark); background: color-mix(in srgb, var(--bin) 76%, #3c2d20); z-index: 2; }
+.memory-bin.kraft { --bin: #b78354; --bin-dark: #6f4b2e; }
+.memory-bin.yellow { --bin: #c9b84f; --bin-dark: #746b2f; }
+.memory-bin.rose { --bin: #c69282; --bin-dark: #80584d; }
+.memory-bin.blue { --bin: #7899ad; --bin-dark: #455f70; }
+.memory-bin.green { --bin: #8ca081; --bin-dark: #53624b; }
+.memory-bin.lilac { --bin: #9b92ac; --bin-dark: #5e576c; }
+.bin-cards { position: absolute; left: 15px; right: 15px; top: -26px; height: 55px; z-index: -1; }
+.bin-cards i { position: absolute; bottom: 0; width: calc(100% - 12px); height: 42px; border: 1px solid #9e9586; background: #eee7da; }
+.bin-cards i:nth-child(1) { left: 0; height: 43px; transform: rotate(-2deg); }
+.bin-cards i:nth-child(2) { left: 4px; height: 49px; background: #e4d4bf; }
+.bin-cards i:nth-child(3) { left: 8px; height: 38px; background: #cbd2c2; transform: rotate(1deg); }
+.bin-cards i:nth-child(4) { left: 12px; height: 45px; background: #f1eadc; }
+.bin-handle { width: 54px; height: 17px; margin: -28px auto 9px; border: 2px solid var(--bin-dark); border-radius: 3px; background: #d8d1c4; position: relative; z-index: 3; }
+.bin-paper-label { padding: 9px 10px; border: 1px solid #655b4e; background: #f2eadb; box-shadow: 2px 2px 0 rgba(56,43,31,.2); transform: rotate(-1deg); }
+.bin-paper-label span, .bin-paper-label small { display: block; font: 6px "DM Mono"; color: #787165; }
+.bin-paper-label strong { display: block; margin: 3px 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 15px "Newsreader"; }
+.bin-mark { position: absolute; right: 12px; bottom: 10px; font: 18px "Newsreader"; color: rgba(41,38,33,.55); }
+.bin-count { display: block; margin-top: 8px; font: 7px "DM Mono"; color: rgba(35,31,27,.75); }
+.memory-bin.open { max-width: 360px; margin: 28px auto 35px; min-height: 180px; transform: none; }
+.opened-bin-page .back-to-bins { border: 0; background: transparent; padding: 0; display: flex; align-items: center; gap: 7px; color: #87604d; cursor: pointer; font-size: 11px; }
+.back-to-bins svg { width: 16px; }
+.bin-postcards { display: grid; gap: 18px; }
+.empty-bin { padding: 42px 25px; text-align: center; border: 1px dashed #b6aa99; background: rgba(255,255,255,.25); }
+.empty-bin > span { display: block; font-size: 32px; color: #9b866c; }
+.empty-bin h2 { margin: 8px 0 4px; }
+.empty-bin p { color: #817b71; font-size: 11px; line-height: 1.5; }
+.health-archive-heading { margin-top: 8px; padding-top: 27px; border-top: 1px solid #d4c9b9; }
+
+.postcard {
+  --card-paper: #f2e6c9; --card-ink: #48443b; position: relative; min-height: 185px; padding: 20px 70px 20px 22px;
+  overflow: hidden; border: 1px solid #a89b86; background: var(--card-paper); color: var(--card-ink);
+  box-shadow: 4px 6px 0 rgba(75,59,39,.14); transform: rotate(-.35deg);
+}
+.postcard::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(89,77,59,.2); pointer-events: none; }
+.postcard-cream {
+  background:
+    radial-gradient(circle at 13% 14%, rgba(178,110,87,.14) 0 2px, transparent 3px),
+    linear-gradient(105deg, transparent 68%, rgba(126,145,105,.12) 68% 69%, transparent 69%),
+    #f1e4c8;
+}
+.postcard-airmail { border: 7px solid transparent; padding: 15px 65px 15px 17px; background: linear-gradient(#f5eee1,#f5eee1) padding-box, repeating-linear-gradient(135deg,#b96759 0 9px,#eee7db 9px 18px,#5e8995 18px 27px,#eee7db 27px 36px) border-box; }
+.postcard-scrapbook { background: #d5c3a1; transform: rotate(.45deg); }
+.postcard-scrapbook::after { content: ""; position: absolute; width: 80px; height: 18px; left: 35%; top: -4px; background: rgba(245,229,180,.62); transform: rotate(-3deg); }
+.postcard-night { --card-ink: #eef0e8; background: radial-gradient(circle at 75% 20%, #f1dd9c 0 3px, transparent 4px), radial-gradient(circle at 18% 72%, #d6d7bb 0 2px, transparent 3px), #344957; border-color: #1f303b; }
+.postcard-topline { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; margin-bottom: 18px; font: 7px "DM Mono"; letter-spacing: .08em; opacity: .7; }
+.postcard-copy { position: relative; z-index: 1; }
+.postcard-copy h3 { margin: 0 0 7px; font-size: 23px; line-height: 1; }
+.postcard-copy p { margin: 0; color: inherit; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+.postcard-photo { position: relative; z-index: 1; width: min(62%, 230px); max-height: 170px; object-fit: cover; float: left; margin: 0 14px 10px 0; padding: 5px 5px 15px; background: #faf6ed; box-shadow: 2px 3px 0 rgba(50,42,31,.18); transform: rotate(-1.5deg); }
+.postcard-stamp { position: absolute; right: 18px; top: 45px; width: 43px; height: 51px; z-index: 2; border: 2px dotted rgba(75,66,53,.55); display: flex; flex-direction: column; align-items: center; justify-content: center; transform: rotate(3deg); }
+.postcard-stamp span { font-size: 18px; }
+.postcard-stamp small { font: 5px "DM Mono"; }
+.postcard-stickers { position: absolute; right: 14px; bottom: 13px; display: flex; align-items: end; z-index: 3; }
+.postcard-stickers .sticker { margin-left: -10px; }
+.postcard-delete { position: absolute; z-index: 4; top: 10px; right: 10px; opacity: 0; border: 0; background: rgba(247,242,232,.75); border-radius: 50%; width: 27px; height: 27px; display: grid; place-items: center; cursor: pointer; }
+.postcard-delete svg { width: 13px; color: #9d5748; }
+.postcard:hover .postcard-delete { opacity: 1; }
+.note-font-editorial, .note-font-editorial .postcard-copy { font-family: "Newsreader", serif; }
+.note-font-handwritten, .note-font-handwritten .postcard-copy { font-family: "Caveat", cursive; }
+.note-font-handwritten .postcard-copy h3 { font-size: 29px; }
+.note-font-handwritten .postcard-copy p { font-size: 17px; line-height: 1.3; }
+.note-font-typewriter, .note-font-typewriter .postcard-copy { font-family: "DM Mono", monospace; }
+.note-font-typewriter .postcard-copy h3 { font-size: 17px; }
+.note-font-typewriter .postcard-copy p { font-size: 10px; }
+.note-font-clean, .note-font-clean .postcard-copy { font-family: "DM Sans", sans-serif; }
+.postcard.preview { min-height: 210px; pointer-events: none; }
 
 .insight-card { background: #d9c79e; border: 1px solid #a4926b; padding: 22px; box-shadow: 5px 6px 0 #b7a57c; margin-bottom: 25px; }
 .insight-top { display: flex; justify-content: space-between; margin-bottom: 28px; font: 9px "DM Mono"; }
@@ -246,6 +325,24 @@ h2 { font-size: 24px; }
 .photo-preview button, .replace-photo { margin: 0 !important; border: 1px solid #aa9983; background: #f4ebdc; padding: 7px 9px; display: inline-flex !important; align-items: center; gap: 5px; cursor: pointer; font-size: 9px; }
 .photo-preview button svg, .replace-photo svg { width: 13px; }
 .photo-error { margin-top: 7px; color: #a34735; font-size: 10px; }
+.postcard-customizer { display: grid; gap: 18px; margin-bottom: 19px; }
+.postcard-customizer fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
+.postcard-customizer legend { padding: 0; margin-bottom: 8px; font: 9px "DM Mono"; letter-spacing: .06em; color: #716d65; }
+.font-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.font-options button { min-width: 0; height: 48px; border: 1px solid #c1b5a4; background: rgba(255,255,255,.35); cursor: pointer; font-size: 11px; }
+.font-options button.note-font-handwritten { font-size: 17px; }
+.font-options button.note-font-typewriter { font-size: 8px; }
+.font-options button.selected, .paper-options button.selected { border-color: #8f6c50; background: #e7d7bd; box-shadow: 0 3px 0 #c9b596; transform: translateY(-2px); }
+.paper-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.paper-options button { min-width: 0; min-height: 67px; border: 1px solid #b8ac9b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+.paper-options button span { font-size: 20px; }
+.paper-options button small { font-size: 7px; }
+.paper-options .cream { background: #f1e4c8; }
+.paper-options .airmail { background: repeating-linear-gradient(135deg,#e8d9ce 0 8px,#f7efe4 8px 16px,#d3e0df 16px 24px); }
+.paper-options .scrapbook { background: #d5c3a1; }
+.paper-options .night { background: #344957; color: white; }
+.bin-select { margin-top: 3px; }
+.postcard-preview-wrap { margin: 22px 0; padding: 16px; border: 1px dashed #b4a895; background: rgba(226,215,196,.36); }
 .sticker-picker { border: 0; padding: 0; margin: 3px 0 20px; min-width: 0; }
 .sticker-picker legend {
   width: 100%; display: flex; align-items: center; gap: 5px; padding: 0; margin-bottom: 10px;
@@ -286,6 +383,9 @@ h2 { font-size: 24px; }
 .sticker.compact::before { inset: 2px; }
 .sticker.compact .sticker-art { font-size: 17px; }
 .sticker.compact .sticker-face { max-width: 34px; font-size: 4px; margin-top: 3px; }
+.sticker.rotate-0 { transform: rotate(-5deg); }
+.sticker.rotate-1 { transform: rotate(4deg) translateY(-5px); }
+.sticker.rotate-2 { transform: rotate(-1deg) translateY(2px); }
 .save-button { width: 100%; border: 0; padding: 15px; background: var(--terracotta); color: white; font-weight: 600; box-shadow: 0 4px 0 #994934; cursor: pointer; }
 .save-button:disabled { opacity: .45; cursor: not-allowed; }
 .profile-sheet { padding-top: 18px; }
@@ -382,6 +482,12 @@ h2 { font-size: 24px; }
   .photo-heading > small { display: none; }
   .photo-preview { grid-template-columns: 90px 1fr; }
   .photo-preview > img { width: 90px; height: 82px; }
+  .memory-bin-grid { gap: 22px 10px; }
+  .memory-bin { min-height: 151px; padding-left: 9px; padding-right: 9px; }
+  .bin-paper-label strong { font-size: 13px; }
+  .font-options, .paper-options { grid-template-columns: 1fr 1fr; }
+  .postcard { padding-right: 60px; }
+  .postcard-photo { width: 58%; }
   .lock-page { padding: 0; place-items: stretch; }
   .lock-card { min-height: 100vh; padding: max(55px, env(safe-area-inset-top)) 25px 35px; border: 0; }
 }

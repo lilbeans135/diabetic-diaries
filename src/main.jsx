@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
+  Archive,
+  ArrowLeft,
   BookHeart,
   CalendarDays,
   ChevronLeft,
@@ -19,7 +21,6 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
-  UserRound,
   X,
 } from "lucide-react";
 import "./styles.css";
@@ -37,6 +38,29 @@ const defaultProfile = {
   careNote: "",
   avatarColor: "peach",
 };
+
+const MEMORY_BINS = [
+  { id: "everyday", name: "Everyday Pieces", caption: "The ordinary magic", color: "kraft", mark: "DD" },
+  { id: "small-wins", name: "Small Wins", caption: "Worth celebrating", color: "yellow", mark: "★" },
+  { id: "people-places", name: "People & Places", caption: "Where life happened", color: "rose", mark: "⌂" },
+  { id: "soft-days", name: "Soft Days", caption: "Slow, quiet, tender", color: "blue", mark: "☁" },
+  { id: "favorites", name: "Keep Forever", caption: "The very best bits", color: "green", mark: "♡" },
+  { id: "uncategorized", name: "Little Miscellany", caption: "Everything in between", color: "lilac", mark: "✦" },
+];
+
+const NOTE_FONTS = [
+  { id: "editorial", name: "Editorial" },
+  { id: "handwritten", name: "Handwritten" },
+  { id: "typewriter", name: "Typewriter" },
+  { id: "clean", name: "Simple" },
+];
+
+const POSTCARD_STYLES = [
+  { id: "cream", name: "Pressed flower", swatch: "🌼" },
+  { id: "airmail", name: "Air mail", swatch: "✈" },
+  { id: "scrapbook", name: "Scrapbook", swatch: "✂" },
+  { id: "night", name: "Moonlight", swatch: "☾" },
+];
 
 const STICKER_PACKS = {
   glucose: [
@@ -416,6 +440,9 @@ function HealthCard({ icon, title, value, unit, meta, onClick, className }) {
 }
 
 function EntryCard({ entry, onRemove, unit = "mg/dL" }) {
+  if (entry.type === "note") {
+    return <Postcard entry={entry} onRemove={onRemove} />;
+  }
   const content =
     entry.type === "glucose"
       ? `${entry.value} ${entry.unit || unit} · ${entry.timing}`
@@ -447,14 +474,33 @@ function EntryCard({ entry, onRemove, unit = "mg/dL" }) {
 }
 
 function History({ entries, removeEntry, unit }) {
+  const [selectedBin, setSelectedBin] = useState(null);
+  const notes = entries.filter((entry) => entry.type === "note");
+  const healthEntries = entries.filter((entry) => entry.type !== "note");
   const groups = useMemo(() => {
-    return entries.reduce((all, entry) => {
+    return healthEntries.reduce((all, entry) => {
       const key = formatShortDate(entry.date);
       all[key] = all[key] || [];
       all[key].push(entry);
       return all;
     }, {});
-  }, [entries]);
+  }, [healthEntries]);
+
+  if (selectedBin) {
+    const bin = MEMORY_BINS.find((item) => item.id === selectedBin);
+    const binNotes = notes.filter((entry) => (entry.bin || "everyday") === selectedBin);
+    return (
+      <section className="history-page opened-bin-page">
+        <button className="back-to-bins" onClick={() => setSelectedBin(null)}><ArrowLeft /> All memory boxes</button>
+        <MemoryBin bin={bin} count={binNotes.length} open />
+        <div className="bin-postcards">
+          {binNotes.length
+            ? binNotes.map((entry) => <Postcard key={entry.id} entry={entry} onRemove={removeEntry} />)
+            : <div className="empty-bin"><span>{bin.mark}</span><h2>This box is waiting.</h2><p>Choose “{bin.name}” when writing a life note and it will be tucked in here.</p></div>}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="history-page">
@@ -463,10 +509,18 @@ function History({ entries, removeEntry, unit }) {
         <div><span>YOUR ARCHIVE</span><strong>{new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date())}</strong></div>
         <button aria-label="Next month"><ChevronRight /></button>
       </div>
-      <div className="drawer">
-        <div className="drawer-handle" />
-        <div className="drawer-label"><span>DIABETIC DIARIES</span><strong>Health, days & little victories</strong></div>
+      <div className="bin-intro">
+        <Archive />
+        <div><p className="eyebrow">YOUR MEMORY SHELF</p><h2>Pick a box to look inside</h2></div>
       </div>
+      <div className="memory-bin-grid">
+        {MEMORY_BINS.map((bin) => (
+          <button key={bin.id} onClick={() => setSelectedBin(bin.id)} aria-label={`Open ${bin.name}, ${notes.filter((entry) => (entry.bin || "everyday") === bin.id).length} notes`}>
+            <MemoryBin bin={bin} count={notes.filter((entry) => (entry.bin || "everyday") === bin.id).length} />
+          </button>
+        ))}
+      </div>
+      <div className="health-archive-heading"><HeartPulse /><div><p className="eyebrow">HEALTH FILES</p><h2>Your readings by day</h2></div></div>
       <div className="history-groups">
         {Object.entries(groups).map(([day, items]) => (
           <div className="day-group" key={day}>
@@ -476,6 +530,42 @@ function History({ entries, removeEntry, unit }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function MemoryBin({ bin, count, open = false }) {
+  return (
+    <div className={`memory-bin ${bin.color} ${open ? "open" : ""}`}>
+      <div className="bin-cards" aria-hidden="true"><i /><i /><i /><i /></div>
+      <div className="bin-handle" />
+      <div className="bin-paper-label">
+        <span>{new Date().getFullYear()} · MEMORY</span>
+        <strong>{bin.name}</strong>
+        <small>{bin.caption}</small>
+      </div>
+      <span className="bin-mark">{bin.mark}</span>
+      <span className="bin-count">{count} {count === 1 ? "note" : "notes"}</span>
+    </div>
+  );
+}
+
+function Postcard({ entry, onRemove, preview = false }) {
+  const stickerIds = entry.stickers || (entry.sticker ? [entry.sticker] : []);
+  const stickers = stickerIds.map((id) => STICKER_PACKS.note.find((item) => item.id === id)).filter(Boolean);
+  return (
+    <article className={`postcard postcard-${entry.cardStyle || "cream"} note-font-${entry.font || "editorial"} ${preview ? "preview" : ""}`}>
+      <div className="postcard-topline"><span>DIABETIC DIARIES · {entry.mood || "☀️"}</span><time>{formatShortDate(entry.date || new Date())}</time></div>
+      {entry.photo && <img className="postcard-photo" src={entry.photo} alt={entry.photoName ? `Attached memory: ${entry.photoName}` : "Attached life memory"} />}
+      <div className="postcard-copy">
+        <h3>{entry.title || "A piece of today"}</h3>
+        <p>{entry.note || "Your words will appear here as you write…"}</p>
+      </div>
+      <div className="postcard-stamp"><span>{POSTCARD_STYLES.find((style) => style.id === (entry.cardStyle || "cream"))?.swatch}</span><small>KEEP</small></div>
+      <div className="postcard-stickers">
+        {stickers.map((sticker, index) => <Sticker key={sticker.id} sticker={sticker} compact rotation={index} />)}
+      </div>
+      {!preview && entry.id !== "welcome" && <button className="postcard-delete" onClick={() => onRemove(entry.id)} aria-label="Delete entry"><Trash2 /></button>}
+    </article>
   );
 }
 
@@ -563,6 +653,10 @@ function EntryForm({ type, onClose, onSave, unit }) {
     note: "",
     mood: "☀️",
     sticker: "",
+    stickers: [],
+    font: "editorial",
+    cardStyle: "cream",
+    bin: "everyday",
     photo: "",
     photoName: "",
   });
@@ -622,6 +716,7 @@ function EntryForm({ type, onClose, onSave, unit }) {
           <>
             <div className="moods">{["☀️", "🌿", "😌", "🌧️", "💪"].map((mood) => <button type="button" className={form.mood === mood ? "active" : ""} onClick={() => update("mood", mood)} key={mood}>{mood}</button>)}</div>
             <label><span>Title <small>(optional)</small></span><input autoFocus value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="A quiet Tuesday" /></label>
+            <label><span>What happened today?</span><textarea rows="5" value={form.note} onChange={(e) => update("note", e.target.value)} placeholder="The ordinary details belong here, too…" /></label>
             <div className="photo-attachment">
               <div className="photo-heading">
                 <span><ImagePlus /> ADD A PHOTO <small>(optional)</small></span>
@@ -646,10 +741,17 @@ function EntryForm({ type, onClose, onSave, unit }) {
               )}
               {photoError && <p className="photo-error" role="alert">{photoError}</p>}
             </div>
+            <PostcardCustomizer form={form} update={update} />
+            <StickerPicker type="note" selected={form.stickers} onSelect={(stickers) => update("stickers", stickers)} multiple />
+            <label className="bin-select"><span>PUT IT AWAY IN</span><select value={form.bin} onChange={(event) => update("bin", event.target.value)}>{MEMORY_BINS.map((bin) => <option key={bin.id} value={bin.id}>{bin.name} — {bin.caption}</option>)}</select></label>
+            <div className="postcard-preview-wrap">
+              <p className="eyebrow">LIVE POSTCARD PREVIEW</p>
+              <Postcard entry={{ ...form, date: new Date().toISOString() }} preview />
+            </div>
           </>
         )}
-        <StickerPicker type={type} selected={form.sticker} onSelect={(sticker) => update("sticker", sticker)} />
-        <label><span>{type === "note" ? "What happened today?" : "Add a note (optional)"}</span><textarea rows={type === "note" ? 5 : 3} value={form.note} onChange={(e) => update("note", e.target.value)} placeholder={type === "note" ? "The ordinary details belong here, too…" : "Meal, medication, how you felt…"} /></label>
+        {type !== "note" && <StickerPicker type={type} selected={form.sticker} onSelect={(sticker) => update("sticker", sticker)} />}
+        {type !== "note" && <label><span>Add a note (optional)</span><textarea rows="3" value={form.note} onChange={(e) => update("note", e.target.value)} placeholder="Meal, medication, how you felt…" /></label>}
         <button className="save-button" disabled={!canSave || photoBusy}>Tuck it into today</button>
       </form>
     </div>
@@ -683,20 +785,51 @@ function resizePhoto(file) {
   });
 }
 
-function StickerPicker({ type, selected, onSelect }) {
+function PostcardCustomizer({ form, update }) {
+  return (
+    <div className="postcard-customizer">
+      <fieldset>
+        <legend>CHOOSE A FONT</legend>
+        <div className="font-options">
+          {NOTE_FONTS.map((font) => <button type="button" key={font.id} className={`note-font-${font.id} ${form.font === font.id ? "selected" : ""}`} onClick={() => update("font", font.id)} aria-pressed={form.font === font.id}>{font.name}</button>)}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>POSTCARD PAPER</legend>
+        <div className="paper-options">
+          {POSTCARD_STYLES.map((style) => <button type="button" key={style.id} className={`${style.id} ${form.cardStyle === style.id ? "selected" : ""}`} onClick={() => update("cardStyle", style.id)} aria-label={`Choose ${style.name} postcard`} aria-pressed={form.cardStyle === style.id}><span>{style.swatch}</span><small>{style.name}</small></button>)}
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
+function StickerPicker({ type, selected, onSelect, multiple = false }) {
   const stickers = STICKER_PACKS[type];
+  const selectedItems = multiple ? selected : [selected].filter(Boolean);
+  const toggleSticker = (id) => {
+    if (!multiple) {
+      onSelect(selected === id ? "" : id);
+      return;
+    }
+    if (selectedItems.includes(id)) {
+      onSelect(selectedItems.filter((item) => item !== id));
+    } else if (selectedItems.length < 3) {
+      onSelect([...selectedItems, id]);
+    }
+  };
   return (
     <fieldset className="sticker-picker">
-      <legend><Sparkles /> Pick a tiny sticker <small>(optional)</small></legend>
+      <legend><Sparkles /> Pick {multiple ? "up to three stickers" : "a tiny sticker"} <small>(optional)</small></legend>
       <div className="sticker-strip">
         {stickers.map((sticker) => (
           <button
             type="button"
             key={sticker.id}
-            className={selected === sticker.id ? "selected" : ""}
-            onClick={() => onSelect(selected === sticker.id ? "" : sticker.id)}
-            aria-label={`${selected === sticker.id ? "Remove" : "Choose"} ${sticker.label} sticker`}
-            aria-pressed={selected === sticker.id}
+            className={selectedItems.includes(sticker.id) ? "selected" : ""}
+            onClick={() => toggleSticker(sticker.id)}
+            aria-label={`${selectedItems.includes(sticker.id) ? "Remove" : "Choose"} ${sticker.label} sticker`}
+            aria-pressed={selectedItems.includes(sticker.id)}
           >
             <Sticker sticker={sticker} />
           </button>
@@ -706,9 +839,9 @@ function StickerPicker({ type, selected, onSelect }) {
   );
 }
 
-function Sticker({ sticker, compact = false }) {
+function Sticker({ sticker, compact = false, rotation = 0 }) {
   return (
-    <span className={`sticker ${sticker.color} ${compact ? "compact" : ""}`} aria-hidden="true">
+    <span className={`sticker ${sticker.color} ${compact ? "compact" : ""} rotate-${rotation}`} aria-hidden="true">
       <span className="sticker-art">{sticker.art}</span>
       <span className="sticker-face">{sticker.face}</span>
     </span>

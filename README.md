@@ -6,8 +6,9 @@ A gentle, private daily diary for recording blood sugar, blood pressure, everyda
 
 - Blood glucose logging with meal timing
 - Blood pressure and pulse tracking
-- Life notes with moods, stickers, and photo attachments
-- Local trends and a chronological archive
+- Custom postcard notes with fonts, paper styles, photos, and multiple stickers
+- Visual memory boxes for filing and revisiting life notes
+- Local health trends and a chronological reading archive
 - Password lock and personal profile
 - Mobile-friendly design
 
