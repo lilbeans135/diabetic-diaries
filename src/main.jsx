@@ -380,6 +380,7 @@ function PasswordGate({ hasPassword, onSetup, onUnlock }) {
 }
 
 function Today({ entries, latestGlucose, latestPressure, openComposer, removeEntry, profile }) {
+  const recentHealthEntries = entries.filter((entry) => entry.type !== "note").slice(0, 4);
   return (
     <>
       <section className="greeting">
@@ -438,12 +439,14 @@ function Today({ entries, latestGlucose, latestPressure, openComposer, removeEnt
       <section className="recent">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">LATEST PIECES</p>
-            <h2>Your day so far</h2>
+            <p className="eyebrow">TODAY'S HEALTH LOG</p>
+            <h2>Your recent check-ins</h2>
           </div>
         </div>
         <div className="entry-list">
-          {entries.slice(0, 4).map((entry) => <EntryCard key={entry.id} entry={entry} onRemove={removeEntry} unit={profile.glucoseUnit} />)}
+          {recentHealthEntries.length
+            ? recentHealthEntries.map((entry) => <EntryCard key={entry.id} entry={entry} onRemove={removeEntry} unit={profile.glucoseUnit} />)
+            : <div className="health-log-empty"><HeartPulse /><p>No health readings yet today.</p><span>Your life notes are safely tucked inside their memory boxes.</span></div>}
         </div>
       </section>
     </>
