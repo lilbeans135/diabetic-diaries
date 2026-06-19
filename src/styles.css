@@ -54,6 +54,11 @@ h2 { font-size: 24px; }
 }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
+.top-actions { display: flex; align-items: center; gap: 9px; }
+.sync-pill { display: flex; align-items: center; gap: 4px; color: #657d69; font: 8px "DM Mono"; }
+.sync-pill svg { width: 13px; }
+.sync-pill.syncing { color: #9a7a4e; }
+.sync-pill.error { color: #a34f43; }
 .avatar {
   width: 43px; height: 43px; border-radius: 50%; border: 1px solid #9a8f7d; background: #efe1c9;
   font-family: "Newsreader", serif; font-size: 20px; box-shadow: 3px 3px 0 #d9c8ac;
@@ -427,6 +432,32 @@ h2 { font-size: 24px; }
   width: 100%; margin-top: 13px; border: 1px solid #b9a99a; padding: 12px;
   background: transparent; color: #735f56; display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer;
 }
+.sign-out-button {
+  width: 100%; margin-top: 9px; border: 0; padding: 10px; background: transparent; color: #8c6960;
+  display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-size: 10px;
+}
+.sign-out-button svg { width: 14px; }
+
+.account-page, .cloud-loading {
+  min-height: 100vh; width: 100%; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(circle at 16% 12%, rgba(255,255,255,.56), transparent 28%), linear-gradient(rgba(73,62,46,.035) 1px, transparent 1px), #d8cdbb;
+  background-size: auto, 100% 24px, auto;
+}
+.account-card { width: min(100%, 460px); background: var(--paper); border: 1px solid #aa9c87; padding: 40px 38px 32px; box-shadow: 10px 12px 0 rgba(89,70,45,.16); }
+.cloud-emblem { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: #b9cfd0; border: 1px solid #748f93; box-shadow: 3px 4px 0 #8eabad; margin-bottom: 24px; }
+.cloud-emblem svg { width: 27px; }
+.account-card h1 { font-size: clamp(34px, 8vw, 45px); line-height: .98; margin-bottom: 15px; }
+.account-intro { color: #706d65; font-size: 12px; line-height: 1.6; margin-bottom: 25px; }
+.account-card label { display: block; margin-bottom: 15px; }
+.account-card label > span { display: block; font: 9px "DM Mono"; letter-spacing: .08em; color: #716d65; margin-bottom: 7px; }
+.account-card input { width: 100%; border: 1px solid #bdb19f; background: rgba(255,255,255,.4); padding: 14px; outline: 0; }
+.account-card input:focus { border-color: #a55a43; box-shadow: 0 0 0 2px rgba(165,90,67,.12); }
+.account-message { color: #8e574b; font-size: 11px; line-height: 1.45; margin: -2px 0 13px; }
+.account-switch { width: 100%; border: 0; background: transparent; color: #805c4c; padding: 15px 0 2px; cursor: pointer; font-size: 11px; }
+.cloud-loading { align-content: center; text-align: center; color: #5d625d; }
+.cloud-loading svg { width: 44px; height: 44px; margin: auto auto 14px; color: #78999b; }
+.cloud-loading h1 { font-size: 30px; }
+.cloud-loading p { margin-top: 7px; color: #7c7a72; font-size: 11px; }
 
 .lock-page {
   min-height: 100vh; width: 100%; display: grid; place-items: center; padding: 24px;
@@ -492,6 +523,9 @@ h2 { font-size: 24px; }
   .font-options, .paper-options { grid-template-columns: 1fr 1fr; }
   .postcard { padding-right: 60px; }
   .postcard-photo { width: 58%; }
+  .sync-pill span { display: none; }
+  .account-page { padding: 0; }
+  .account-card { min-height: 100vh; padding: max(50px, env(safe-area-inset-top)) 25px 35px; border: 0; }
   .lock-page { padding: 0; place-items: stretch; }
   .lock-card { min-height: 100vh; padding: max(55px, env(safe-area-inset-top)) 25px 35px; border: 0; }
 }

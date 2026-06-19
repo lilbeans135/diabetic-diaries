@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BookHeart,
   CalendarDays,
+  Cloud,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -15,6 +16,7 @@ import {
   KeyRound,
   Lock,
   LockKeyhole,
+  LogOut,
   NotebookPen,
   Plus,
   Save,
@@ -24,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import "./styles.css";
+import { cloudEnabled, supabase } from "./supabase";
 
 const STORAGE_KEY = "diabetic-diaries-v1";
 const PASSWORD_KEY = "diabetic-diaries-password";
@@ -141,6 +144,9 @@ function loadProfile(passwordHash) {
 }
 
 function App() {
+  const [account, setAccount] = useState(null);
+  const [accountLoading, setAccountLoading] = useState(cloudEnabled);
+  const [syncState, setSyncState] = useState("idle");
   const storedPasswordHash = localStorage.getItem(PASSWORD_KEY) || "";
   const [passwordHash, setPasswordHash] = useState(storedPasswordHash);
   const [hasPassword, setHasPassword] = useState(Boolean(storedPasswordHash));
@@ -152,9 +158,92 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const today = new Date();
 
+  useEffect(() => {
+    if (!cloudEnabled) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setAccount(data.session?.user || null);
+      setAccountLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAccount(session?.user || null);
+      setAccountLoading(false);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!account) return;
+    let cancelled = false;
+    const loadCloud = async () => {
+      setSyncState("syncing");
+      const { data, error } = await supabase.from("diary_data").select("*").eq("user_id", account.id).maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setSyncState("error");
+        return;
+      }
+      if (data) {
+        const nextEntries = Array.isArray(data.entries) && data.entries.length ? data.entries : starterEntries;
+        const nextProfile = { ...defaultProfile, ...(data.profile || {}) };
+        setEntries(nextEntries);
+        setProfile(nextProfile);
+        setPasswordHash(data.password_hash || "");
+        setHasPassword(Boolean(data.password_hash));
+        setUnlocked(false);
+        sessionStorage.removeItem(SESSION_KEY);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+        localStorage.setItem(profileKey(data.password_hash), JSON.stringify(nextProfile));
+        if (data.password_hash) localStorage.setItem(PASSWORD_KEY, data.password_hash);
+      } else {
+        await upsertCloudDiary(account.id, storedPasswordHash, loadProfile(storedPasswordHash), loadEntries());
+      }
+      setSyncState("synced");
+    };
+    loadCloud();
+    return () => { cancelled = true; };
+  }, [account?.id]);
+
+  useEffect(() => {
+    if (!account) return;
+    const channel = supabase
+      .channel(`diary-${account.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "diary_data",
+        filter: `user_id=eq.${account.id}`,
+      }, ({ new: data }) => {
+        const nextEntries = Array.isArray(data.entries) ? data.entries : [];
+        const nextProfile = { ...defaultProfile, ...(data.profile || {}) };
+        setEntries(nextEntries);
+        setProfile(nextProfile);
+        setPasswordHash(data.password_hash || "");
+        setHasPassword(Boolean(data.password_hash));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+        localStorage.setItem(profileKey(data.password_hash), JSON.stringify(nextProfile));
+        if (data.password_hash) localStorage.setItem(PASSWORD_KEY, data.password_hash);
+        setSyncState("synced");
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [account?.id]);
+
+  const syncDiary = async (next = {}) => {
+    if (!account) return;
+    setSyncState("syncing");
+    const error = await upsertCloudDiary(
+      account.id,
+      next.passwordHash ?? passwordHash,
+      next.profile ?? profile,
+      next.entries ?? entries,
+    );
+    setSyncState(error ? "error" : "synced");
+  };
+
   const saveEntries = (next) => {
     setEntries(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    syncDiary({ entries: next });
   };
 
   const addEntry = (entry) => {
@@ -169,6 +258,9 @@ function App() {
   const latestGlucose = glucoseEntries[0];
   const latestPressure = pressureEntries[0];
 
+  if (accountLoading) return <CloudLoading />;
+  if (cloudEnabled && !account) return <AccountGate />;
+
   if (!hasPassword || !unlocked) {
     return (
       <PasswordGate
@@ -177,6 +269,7 @@ function App() {
           setPasswordHash(hash);
           setHasPassword(true);
           setProfile(loadProfile(hash));
+          syncDiary({ passwordHash: hash });
         }}
         onUnlock={(hash) => {
           setPasswordHash(hash);
@@ -197,6 +290,7 @@ function App() {
     setProfile(nextProfile);
     localStorage.setItem(profileKey(passwordHash), JSON.stringify(nextProfile));
     localStorage.removeItem(PROFILE_KEY);
+    syncDiary({ profile: nextProfile });
     setShowProfile(false);
   };
 
@@ -208,9 +302,12 @@ function App() {
             <p className="eyebrow">{formatDay(today)}</p>
             <h1>{tab === "today" ? "Your little archive" : tab === "history" ? "Memory drawer" : "Your patterns"}</h1>
           </div>
-          <button className={`avatar profile-avatar ${profile.avatarColor}`} onClick={() => setShowProfile(true)} aria-label="Open profile">
-            {profile.initials || "DD"}
-          </button>
+          <div className="top-actions">
+            {account && <span className={`sync-pill ${syncState}`}><Cloud /><span>{syncState === "syncing" ? "Saving" : syncState === "error" ? "Offline" : "Synced"}</span></span>}
+            <button className={`avatar profile-avatar ${profile.avatarColor}`} onClick={() => setShowProfile(true)} aria-label="Open profile">
+              {profile.initials || "DD"}
+            </button>
+          </div>
         </header>
 
         {tab === "today" && (
@@ -236,12 +333,69 @@ function App() {
       </main>
 
       {composer && <Composer type={composer} setType={setComposer} onClose={() => setComposer(null)} onSave={addEntry} unit={profile.glucoseUnit} />}
-      {showProfile && <ProfileSheet profile={profile} onSave={saveProfile} onClose={() => setShowProfile(false)} onLock={lockDiary} />}
+      {showProfile && <ProfileSheet profile={profile} account={account} onSave={saveProfile} onClose={() => setShowProfile(false)} onLock={lockDiary} />}
     </div>
   );
 }
 
-function ProfileSheet({ profile, onSave, onClose, onLock }) {
+async function upsertCloudDiary(userId, passwordHash, profile, entries) {
+  if (!supabase || !userId) return null;
+  const { error } = await supabase.from("diary_data").upsert({
+    user_id: userId,
+    password_hash: passwordHash || "",
+    profile,
+    entries,
+    updated_at: new Date().toISOString(),
+  });
+  return error;
+}
+
+function CloudLoading() {
+  return <div className="cloud-loading"><Cloud /><h1>Opening your private diary…</h1><p>Checking for your latest notes across devices.</p></div>;
+}
+
+function AccountGate() {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    const result = mode === "signin"
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+    setBusy(false);
+    if (result.error) setMessage(result.error.message);
+    else if (mode === "signup" && !result.data.session) setMessage("Check your email to confirm the account, then sign in here.");
+  };
+
+  return (
+    <div className="account-page">
+      <div className="account-card">
+        <div className="cloud-emblem"><Cloud /></div>
+        <p className="eyebrow">PRIVATE CLOUD DIARY</p>
+        <h1>{mode === "signin" ? "Welcome back to your little archive." : "Carry your diary with you."}</h1>
+        <p className="account-intro">Use the same account on your phone and MacBook. Your diary password remains a second private lock.</p>
+        <form onSubmit={submit}>
+          <label><span>EMAIL</span><input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
+          <label><span>ACCOUNT PASSWORD</span><input type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} minLength="8" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" /></label>
+          {message && <p className="account-message" role="status">{message}</p>}
+          <button className="unlock-button" disabled={busy}>{busy ? "Please wait…" : mode === "signin" ? "Sign in & sync" : "Create private account"}</button>
+        </form>
+        <button className="account-switch" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>
+          {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
+        </button>
+        <div className="privacy-note"><ShieldCheck /><p><strong>Owner-only access.</strong> Database rules restrict every diary record to its signed-in owner.</p></div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSheet({ profile, account, onSave, onClose, onLock }) {
   const [form, setForm] = useState(profile);
   const update = (key, value) => {
     const next = { ...form, [key]: value };
@@ -286,6 +440,7 @@ function ProfileSheet({ profile, onSave, onClose, onLock }) {
 
         <button className="save-button profile-save"><Save /> Save my profile</button>
         <button type="button" className="lock-diary-button" onClick={onLock}><Lock /> Lock diary now</button>
+        {account && <button type="button" className="sign-out-button" onClick={() => supabase.auth.signOut()}><LogOut /> Sign out of cloud account</button>}
       </form>
     </div>
   );
@@ -371,7 +526,7 @@ function PasswordGate({ hasPassword, onSetup, onUnlock }) {
 
         <div className="privacy-note">
           <LockKeyhole />
-          <p><strong>Stored only on this device.</strong> This lock discourages casual access, but your local records are not encrypted. Don’t use a password you use elsewhere.</p>
+          <p><strong>A second private lock.</strong> Your account controls cloud access; this diary password protects the journal after sign-in. Don’t reuse an important password.</p>
         </div>
         {!hasPassword && <p className="recovery-note">There is no password recovery yet, so keep it somewhere safe.</p>}
       </div>

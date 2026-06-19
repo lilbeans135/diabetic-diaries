@@ -14,7 +14,9 @@ A gentle, private daily diary for recording blood sugar, blood pressure, everyda
 
 ## Privacy
 
-Diabetic Diaries stores entries, attached photos, and the password hash in the browser's local storage. Profile details are stored under a key derived from the saved password hash, so the matching profile loads after unlock. Data is not uploaded to a server, but it is not encrypted. Clearing site data, switching browsers or devices, or using a different domain will not preserve existing entries.
+When Supabase is configured, Diabetic Diaries stores entries, attached photos, profile details, and the diary password hash in the signed-in user's private database row so the diary can sync across devices. Row-level security restricts each record to its owner. A local browser copy is also retained for continuity.
+
+Without Supabase configuration, records remain only in that browser's local storage and do not sync across devices. The diary password hash is stored, but diary contents are not end-to-end encrypted, so do not reuse an important password.
 
 This app is a personal record-keeping tool. It does not provide medical advice, diagnosis, or emergency monitoring.
 
@@ -22,10 +24,13 @@ This app is a personal record-keeping tool. It does not provide medical advice, 
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open the local address shown in the terminal.
+Add the Supabase project URL and publishable key to `.env.local`, then open the local address shown in the terminal.
+
+The owner-only database schema is in `supabase/schema.sql`.
 
 ## Production build
 
